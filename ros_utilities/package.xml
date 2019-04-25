@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>ros_utilities</name>
+  <version>0.0.0</version>
+  <description>The ros_utilities package</description>
+
+  <maintainer email="jshardy@google.com">Jason Hardy</maintainer>
+
+  <license>Proprietary</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>abseil_cpp</depend>
+  <depend>diagnostic_msgs</depend>
+  <depend>roscpp</depend>
+  <test_depend>std_msgs</test_depend>
+  <test_depend>rostest</test_depend>
+
+  <export>
+  </export>
+</package>

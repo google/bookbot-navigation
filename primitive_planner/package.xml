@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>primitive_planner</name>
+  <version>0.0.0</version>
+  <description>The primitive_planner package</description>
+
+  <maintainer email="jshardy@google.com">Jason Hardy</maintainer>
+
+  <license>Proprietary</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>eigen</build_depend>
+  <depend>planning_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>ros_utilities</depend>
+  <depend>signed_distance_field</depend>
+  <depend>tf</depend>
+  <depend>trajectory_math</depend>
+  <depend>visualization_msgs</depend>
+
+  <export>
+  </export>
+</package>

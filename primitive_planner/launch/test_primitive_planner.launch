@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- launch simulator -->
+  <node pkg="bookbot_base_simulator" type="bookbot_base_simulator_node" name="simulator"/>
+
+  <!-- launch waypoint backend -->
+  <node pkg="waypoint_backend" type="waypoint_backend_node" name="waypoint_backend"/>
+
+  <!-- launch path converter -->
+  <node pkg="path_converter" type="path_converter_node" name="path_converter"/>
+
+  <!-- launch primitive planner -->
+  <include file="$(find primitive_planner)/launch/primitive_planner.launch">
+    <arg name="require_perception" value="true"/>
+  </include>
+</launch>

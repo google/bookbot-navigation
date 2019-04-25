@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="require_perception" default="true"/>
+  <rosparam command="load" ns="velocity_planner" file="$(find primitive_velocity_planner)/param/primitive_velocity_planner_params.yaml"/>
+  <node pkg="primitive_velocity_planner" type="primitive_velocity_planner_node" name="velocity_planner" output="screen">
+    <param name="require_perception" type="bool" value="$(arg require_perception)" />
+    <remap from="/desired_path" to="/planned_path"/>
+  </node>
+</launch>

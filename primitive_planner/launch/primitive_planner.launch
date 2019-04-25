@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="require_perception" default="true"/>
+  <rosparam command="load" ns="primitive_planner" file="$(find primitive_planner)/param/primitive_planner_params.yaml"/>
+  <node pkg="primitive_planner" type="primitive_planner_node" name="primitive_planner" output="screen">
+    <param name="require_perception" type="bool" value="$(arg require_perception)" />
+  </node>
+</launch>

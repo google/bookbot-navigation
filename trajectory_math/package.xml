@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>trajectory_math</name>
+  <version>0.0.0</version>
+  <description>The trajectory_math package</description>
+
+  <maintainer email="jshardy@google.com">Jason Hardy</maintainer>
+
+  <license>Proprietary</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>eigen</build_depend>
+  <depend>abseil_cpp</depend>
+
+  <export>
+  </export>
+</package>

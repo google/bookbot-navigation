@@ -1,0 +1,10 @@
+<library path="lib/libwaypoint_tool">
+  <class name="waypoint_ui/waypoint_tool"
+         type="bookbot::WaypointTool"
+         base_class_type="rviz::Tool">
+    <description>
+      Tool for adding/deleting/reseting waypoints.
+    </description>
+  </class>
+</library>
+
