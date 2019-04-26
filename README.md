@@ -15,3 +15,7 @@ To try out the bookbot navigation planner:
 3. Run the planning stack in simulation with a static example obstacle grid: 
 	`roslaunch primitive_velocity_planner test_primitive_velocity_planner.launch`
 4. Set new waypoints by clicking on the waypoint tool (or using `w` as a hotkey) and then `shift-click` to append a new waypoint or `ctrl-click` to replace the existing set of waypoints.
+
+## Disclaimer
+
+This is not an officially supported Google product. 
