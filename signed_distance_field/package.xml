@@ -14,7 +14,7 @@
   <depend>libopencv-dev</depend>
   <depend>nav_msgs</depend>
   <depend>planning_msgs</depend>
-  <depend>ros_cpp</depend>
+  <depend>roscpp</depend>
   <depend>ros_utilities</depend>
   <depend>tf</depend>
   <depend>trajectory_math</depend>
