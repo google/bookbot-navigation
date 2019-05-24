@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <primitive_velocity_planner/velocity_planner_introspection.h>
+#include <primitive_velocity_planner/velocity_profile_search.h>
+#include <primitive_velocity_planner/velocity_search_visited_grid.h>
 #include <ros/console.h>
 #include <ros_utilities/scoped_timer.h>
 #include <trajectory_math/cubic_spiral.h>
@@ -19,9 +22,6 @@
 #include <trajectory_math/path_algorithms.h>
 #include <trajectory_math/point_algorithms.h>
 #include <trajectory_math/trajectory.h>
-#include <velocity_planner/velocity_planner_introspection.h>
-#include <velocity_planner/velocity_profile_search.h>
-#include <velocity_planner/velocity_search_visited_grid.h>
 
 #include <Eigen/Geometry>
 #include <deque>

@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <primitive_velocity_planner/primitive_velocity_planner.h>
+#include <primitive_velocity_planner/velocity_planner_introspection.h>
+#include <primitive_velocity_planner/velocity_profile_search.h>
 #include <ros/ros.h>
 #include <trajectory_math/curve_algorithms.h>
 #include <trajectory_math/path_algorithms.h>
 #include <trajectory_math/trajectory1D_algorithms.h>
 #include <trajectory_math/trajectory_algorithms.h>
-#include <velocity_planner/primitive_velocity_planner.h>
-#include <velocity_planner/velocity_planner_introspection.h>
-#include <velocity_planner/velocity_profile_search.h>
 
 #include <algorithm>
 

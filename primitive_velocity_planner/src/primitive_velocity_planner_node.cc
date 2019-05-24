@@ -16,6 +16,8 @@
 #include <nav_msgs/Odometry.h>
 #include <planning_msgs/Path.h>
 #include <planning_msgs/Trajectory.h>
+#include <primitive_velocity_planner/primitive_velocity_planner.h>
+#include <primitive_velocity_planner/velocity_planner_introspection.h>
 #include <ros/ros.h>
 #include <ros_utilities/introspection.h>
 #include <ros_utilities/parameter_loading.h>
@@ -25,8 +27,6 @@
 #include <std_msgs/Empty.h>
 #include <tf/tf.h>
 #include <trajectory_math/trajectory.h>
-#include <velocity_planner/primitive_velocity_planner.h>
-#include <velocity_planner/velocity_planner_introspection.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include <iomanip>

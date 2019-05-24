@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <velocity_planner/velocity_search_visited_grid.h>
+#include <primitive_velocity_planner/velocity_search_visited_grid.h>
 
 #include <cmath>
 
