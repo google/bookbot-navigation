@@ -24,16 +24,18 @@ PathPoint ApplyPathPrimitive(const PathPrimitive& primitive,
   return {start_point.distance_along_path + primitive.length,
           start_point.x + relative_position[0],
           start_point.y + relative_position[1],
-          start_point.yaw + primitive.delta_yaw, 0.};
+          start_point.yaw + primitive.delta_yaw, primitive.end_curvature};
 }
 
 PathPrimitiveSearchNode::PathPrimitiveSearchNode(
-    double x_in, double y_in, double yaw_in, double distance_traveled_in,
-    int tree_depth_in, PathPrimitive previous_primitive_in,
-    double cost_from_start_in, double cost_to_goal_in, int parent_index_in)
+    double x_in, double y_in, double yaw_in, double curvature_in,
+    double distance_traveled_in, int tree_depth_in,
+    PathPrimitive previous_primitive_in, double cost_from_start_in,
+    double cost_to_goal_in, int parent_index_in)
     : x(x_in),
       y(y_in),
       yaw(yaw_in),
+      curvature(curvature_in),
       distance_traveled(distance_traveled_in),
       tree_depth(tree_depth_in),
       previous_primitive(previous_primitive_in),

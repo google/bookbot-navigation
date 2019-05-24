@@ -58,21 +58,25 @@ int main(int argc, char** argv) {
           node_handle, "robot_radius", &params.robot_radius,
           "obstacle_check_front_offset", &params.obstacle_check_front_offset,
           "primitive_min_turn_radius", &params.primitive_min_turn_radius,
-          "num_primitive_angle_samples", &params.num_primitive_angle_samples,
-          "horizon", &params.horizon, "travel_cost_weight",
-          &params.travel_cost_weight, "path_divergence_weight",
-          &params.path_divergence_weight, "path_end_divergence_weight",
-          &params.path_end_divergence_weight, "path_end_alignment_weight",
-          &params.path_end_alignment_weight, "max_path_divergence",
-          &params.max_path_divergence, "obstacle_weight",
+          "num_primitive_curvature_samples",
+          &params.num_primitive_curvature_samples,
+          "max_curvature_change_per_meter",
+          &params.max_curvature_change_per_meter, "horizon", &params.horizon,
+          "travel_cost_weight", &params.travel_cost_weight,
+          "path_divergence_weight", &params.path_divergence_weight,
+          "path_end_divergence_weight", &params.path_end_divergence_weight,
+          "path_end_alignment_weight", &params.path_end_alignment_weight,
+          "max_path_divergence", &params.max_path_divergence, "obstacle_weight",
           &params.obstacle_weight, "curvature_integral_weight",
           &params.curvature_integral_weight, "primitive_length",
           &params.primitive_length, "visited_grid_spatial_resolution",
           &params.visited_grid_spatial_resolution,
           "num_visited_grid_angle_bins", &params.num_visited_grid_angle_bins,
-          "require_perception", &params.require_perception,
-          "clicked_path_timeout", &params.clicked_path_timeout,
-          "odometry_timeout", &params.odometry_timeout, "perception_timeout",
+          "visited_grid_curvature_resolution",
+          &params.visited_grid_curvature_resolution, "require_perception",
+          &params.require_perception, "clicked_path_timeout",
+          &params.clicked_path_timeout, "odometry_timeout",
+          &params.odometry_timeout, "perception_timeout",
           &params.perception_timeout, "cycle_time", &params.cycle_time,
           "reinitialization_distance", &params.reinitialization_distance)) {
     return EXIT_FAILURE;
@@ -211,6 +215,7 @@ int main(int argc, char** argv) {
         initial_state.x = current_node_point_iter->x;
         initial_state.y = current_node_point_iter->y;
         initial_state.yaw = current_node_point_iter->yaw;
+        initial_state.curvature = current_node_point_iter->curvature;
 
         // Modify the distance_along_path values in the prefix so that
         // the prefix starts at a distance of 0
@@ -246,7 +251,8 @@ int main(int argc, char** argv) {
     // Generate primitive set given current parameters
     auto primitive_set = bookbot::GeneratePrimitiveSet(
         params.primitive_length, params.primitive_min_turn_radius,
-        params.num_primitive_angle_samples);
+        params.num_primitive_curvature_samples,
+        params.max_curvature_change_per_meter);
 
     // Compute coarse path using a discrete search
     bookbot::Path primitive_path = bookbot::PlanPrimitivePath(

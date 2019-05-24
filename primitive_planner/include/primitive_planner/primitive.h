@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -90,6 +90,8 @@ struct PathPrimitive {
   double x_rel;
   double y_rel;
   double delta_yaw;
+  double start_curvature;
+  double end_curvature;
 
   // Precomputed metrics
   double squared_curvature_integral;
@@ -118,8 +120,9 @@ PathPrimitiveWithEvaluation GenerateStandStillPrimitive();
 
 PathPrimitiveWithEvaluation GenerateTurnInPlacePrimitive(double delta_yaw);
 
-PathPrimitiveWithEvaluation GenerateCubicSpiralPrimitive(double length,
-                                                         double delta_yaw);
+PathPrimitiveWithEvaluation GenerateCubicSpiralPrimitive(
+    double length, double delta_yaw, double start_curvature = 0,
+    double end_curvature = 0);
 
 }  // namespace bookbot
 

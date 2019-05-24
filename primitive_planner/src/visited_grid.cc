@@ -40,30 +40,37 @@ int cantor_pairing_function(int a, int b) {
 std::size_t VisitedGrid::VisitedGridNodeHash::operator()(
     const VisitedGridNode& node) const {
   return std::hash<int>()(cantor_pairing_function(
-      cantor_pairing_function(node.x_index, node.y_index), node.angle_bin));
+      cantor_pairing_function(
+          cantor_pairing_function(node.x_index, node.y_index), node.angle_bin),
+      node.curvature_index));
 }
 
-VisitedGrid::VisitedGrid(double spatial_resolution,
+VisitedGrid::VisitedGrid(double spatial_resolution, double curvature_spacing,
                          int num_visited_grid_angle_bins)
     : spatial_resolution_(spatial_resolution),
+      curvature_spacing_(curvature_spacing),
       num_visited_grid_angle_bins_(num_visited_grid_angle_bins) {}
 
-bool VisitedGrid::Contains(double x, double y, double yaw) {
-  auto visited_list_iter = visited_list_.find(GenerateGridNode(x, y, yaw));
+bool VisitedGrid::Contains(double x, double y, double yaw, double curvature) {
+  auto visited_list_iter =
+      visited_list_.find(GenerateGridNode(x, y, yaw, curvature));
   return visited_list_iter != std::end(visited_list_);
 }
 
-bool VisitedGrid::Insert(double x, double y, double yaw) {
-  auto insert_result = visited_list_.insert(GenerateGridNode(x, y, yaw));
+bool VisitedGrid::Insert(double x, double y, double yaw, double curvature) {
+  auto insert_result =
+      visited_list_.insert(GenerateGridNode(x, y, yaw, curvature));
   return insert_result.second;
 }
 
 VisitedGrid::VisitedGridNode VisitedGrid::GenerateGridNode(double x, double y,
-                                                           double yaw) {
+                                                           double yaw,
+                                                           double curvature) {
   VisitedGridNode visited_node;
   // bin x and y values
   visited_node.x_index = x / spatial_resolution_;
   visited_node.y_index = y / spatial_resolution_;
+  visited_node.curvature_index = curvature / curvature_spacing_;
   // bin yaw angle
   const double normalized_yaw = std::remainder(yaw, 2 * M_PI);
   const double wrapped_yaw =

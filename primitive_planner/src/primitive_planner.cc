@@ -29,39 +29,70 @@ namespace bookbot {
 
 std::vector<PathPrimitiveWithEvaluation> GeneratePrimitiveSet(
     double primitive_length, double primitive_min_turn_radius,
-    int primitive_angle_samples) {
+    int primitive_curvature_samples, double max_curvature_change_per_meter) {
   std::vector<PathPrimitiveWithEvaluation> primitive_set;
 
   // StandStill
   primitive_set.push_back(GenerateStandStillPrimitive());
 
-  // Straight
-  primitive_set.push_back(GenerateCubicSpiralPrimitive(primitive_length, 0.));
-
-  // Get delta yaw if turning at min turn radius: delta_yaw = curvature * length
-  double max_delta_yaw = 1 / primitive_min_turn_radius * primitive_length;
-  double delta_yaw_spacing =
-      max_delta_yaw / static_cast<double>(primitive_angle_samples);
-
-  // Left turn primitives
-  for (double delta_yaw = delta_yaw_spacing; delta_yaw < max_delta_yaw;
-       delta_yaw += delta_yaw_spacing) {
-    primitive_set.push_back(
-        GenerateCubicSpiralPrimitive(primitive_length, delta_yaw));
-  }
+  double max_curvature = 1 / primitive_min_turn_radius;
+  double max_delta_yaw = max_curvature * primitive_length;
 
   // Turn-in-place left
   primitive_set.push_back(GenerateTurnInPlacePrimitive(max_delta_yaw));
 
-  // Right turn primitives
-  for (double delta_yaw = -delta_yaw_spacing; delta_yaw > -max_delta_yaw;
-       delta_yaw -= delta_yaw_spacing) {
-    primitive_set.push_back(
-        GenerateCubicSpiralPrimitive(primitive_length, delta_yaw));
-  }
-
   // Turn-in-place right
   primitive_set.push_back(GenerateTurnInPlacePrimitive(-max_delta_yaw));
+
+  double max_curvature_change =
+      max_curvature_change_per_meter * primitive_length;
+  double curvature_spacing =
+      max_curvature / static_cast<double>(primitive_curvature_samples);
+
+  auto approximate_delta_yaw = [&primitive_length](
+                                   double start_curvature,
+                                   double end_curvature) -> double {
+    return 0.5 * (start_curvature + end_curvature) * primitive_length;
+  };
+
+  auto expand_primitives_for_start_curvature =
+      [&primitive_length, &max_curvature, &max_curvature_change,
+       &curvature_spacing, &primitive_set,
+       &approximate_delta_yaw](double start_curvature) -> void {
+    // End with zero or negative curvature
+    for (double end_curvature = 0; end_curvature > -max_curvature;
+         end_curvature -= curvature_spacing) {
+      if (std::abs(end_curvature - start_curvature) < max_curvature_change) {
+        primitive_set.push_back(GenerateCubicSpiralPrimitive(
+            primitive_length,
+            approximate_delta_yaw(start_curvature, end_curvature),
+            start_curvature, end_curvature));
+      }
+    }
+
+    // End with positive curvature
+    for (double end_curvature = curvature_spacing;
+         end_curvature < max_curvature; end_curvature += curvature_spacing) {
+      if (std::abs(end_curvature - start_curvature) < max_curvature_change) {
+        primitive_set.push_back(GenerateCubicSpiralPrimitive(
+            primitive_length,
+            approximate_delta_yaw(start_curvature, end_curvature),
+            start_curvature, end_curvature));
+      }
+    }
+  };
+
+  // Primitives starting with zero or negative curvature
+  for (double start_curvature = 0; start_curvature > -max_curvature;
+       start_curvature -= curvature_spacing) {
+    expand_primitives_for_start_curvature(start_curvature);
+  }
+
+  // Primitives starting with positive curvature
+  for (double start_curvature = curvature_spacing;
+       start_curvature < max_curvature; start_curvature += curvature_spacing) {
+    expand_primitives_for_start_curvature(start_curvature);
+  }
 
   return primitive_set;
 }
@@ -112,6 +143,7 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
 
   // Initialize data structures for A* search
   auto visited_set = VisitedGrid(params.visited_grid_spatial_resolution,
+                                 params.visited_grid_curvature_resolution,
                                  params.num_visited_grid_angle_bins);
   std::vector<PathPrimitiveSearchNode> closed_list;
   std::deque<PathPrimitiveSearchNode> primitive_path;
@@ -121,9 +153,9 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
       open_list(primitive_node_comparator);
 
   // Perform search
-  auto initial_node =
-      PathPrimitiveSearchNode(start_point.x, start_point.y, start_point.yaw, 0,
-                              0, PathPrimitive(), 0, 0, -1);
+  auto initial_node = PathPrimitiveSearchNode(
+      start_point.x, start_point.y, start_point.yaw, start_point.curvature, 0,
+      0, PathPrimitive(), 0, 0, -1);
   initial_node.cost_to_goal = cost_to_goal(initial_node);
   open_list.push(initial_node);
   while (!open_list.empty()) {
@@ -132,7 +164,8 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
     open_list.pop();
 
     // Check and insert into visited set
-    if (!visited_set.Insert(current_node.x, current_node.y, current_node.yaw) &&
+    if (!visited_set.Insert(current_node.x, current_node.y, current_node.yaw,
+                            current_node.curvature) &&
         current_node.previous_primitive.primitive_type !=
             PathPrimitiveType::kStandStill) {
       // Insert returns false if node already in visited set
@@ -158,14 +191,18 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
 
     // Add neighbors using primitive set
     for (const PathPrimitive& primitive : primitive_set) {
+      if (primitive.primitive_type != PathPrimitiveType::kStandStill &&
+          primitive.start_curvature != current_node.curvature) {
+        continue;
+      }
       auto neighbor_state = ApplyPathPrimitive(primitive, current_node.State());
       auto neighbor_node = PathPrimitiveSearchNode(
           neighbor_state.x, neighbor_state.y, neighbor_state.yaw,
-          neighbor_state.distance_along_path, current_node.tree_depth + 1,
-          primitive, 0, 0, closed_list.size() - 1);
+          neighbor_state.curvature, neighbor_state.distance_along_path,
+          current_node.tree_depth + 1, primitive, 0, 0, closed_list.size() - 1);
       if (primitive.primitive_type != PathPrimitiveType::kStandStill &&
           visited_set.Contains(neighbor_node.x, neighbor_node.y,
-                               neighbor_node.yaw)) {
+                               neighbor_node.yaw, neighbor_node.curvature)) {
         continue;
       }
       neighbor_node.cost_to_goal = cost_to_goal(neighbor_node);
@@ -236,7 +273,8 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
        ++iter) {
     path_out.push_back(iter->State());
     ROS_DEBUG_STREAM("[type:" << iter->previous_primitive.primitive_type
-                              << ",x:" << iter->x << ",y:" << iter->y
+                              << ",x:" << iter->x << ",y:" << iter->y << ",yaw:"
+                              << iter->yaw << ",kappa:" << iter->curvature
                               << ",s:" << iter->distance_traveled
                               << ",cost2come:" << iter->cost_from_start
                               << ",cost2go:" << iter->cost_to_goal << ","

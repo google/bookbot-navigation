@@ -33,6 +33,8 @@ class StandStillPrimitiveEvaluator : public PathPrimitiveEvaluationBase {
     primitive.delta_yaw = 0;
     primitive.x_rel = 0;
     primitive.y_rel = 0;
+    primitive.start_curvature = 0;
+    primitive.end_curvature = 0;
     primitive.length = 0;
     primitive.primitive_type = PathPrimitiveType::kStandStill;
     primitive.squared_curvature_integral = 0;
@@ -71,6 +73,8 @@ class TurnInPlacePrimitiveEvaluator : public PathPrimitiveEvaluationBase {
     primitive.delta_yaw = delta_yaw_;
     primitive.x_rel = 0;
     primitive.y_rel = 0;
+    primitive.start_curvature = 0;
+    primitive.end_curvature = 0;
     primitive.length = 0;
     primitive.primitive_type = PathPrimitiveType::kTurnInPlace;
     primitive.squared_curvature_integral =
@@ -97,14 +101,18 @@ PathPrimitiveWithEvaluation GenerateTurnInPlacePrimitive(double delta_yaw) {
 
 class CubicSpiralPrimitiveEvaluator : public PathPrimitiveEvaluationBase {
  public:
-  CubicSpiralPrimitiveEvaluator(double length, double delta_yaw)
-      : length_(length), delta_yaw_(delta_yaw) {}
+  CubicSpiralPrimitiveEvaluator(double length, double delta_yaw,
+                                double start_curvature, double end_curvature)
+      : length_(length),
+        delta_yaw_(delta_yaw),
+        start_curvature_(start_curvature),
+        end_curvature_(end_curvature) {}
 
   PathPoint InterpolateInteriorPoint(
       const PathPoint& start_point,
       double interpolation_distance_along_primitive) const override {
     return InterpolateCubicSpiralSegmentByDistanceAlongPath(
-        start_point, length_, start_point.yaw + delta_yaw_, 0.,
+        start_point, length_, start_point.yaw + delta_yaw_, end_curvature_,
         interpolation_distance_along_primitive);
   }
 
@@ -113,21 +121,23 @@ class CubicSpiralPrimitiveEvaluator : public PathPrimitiveEvaluationBase {
     start_point.x = 0;
     start_point.y = 0;
     start_point.yaw = 0;
-    start_point.curvature = 0;
+    start_point.curvature = start_curvature_;
     start_point.distance_along_path = 0;
     const PathPoint end_point =
         InterpolateCubicSpiralSegmentByDistanceAlongPath(
-            start_point, length_, delta_yaw_, 0., length_);
+            start_point, length_, delta_yaw_, end_curvature_, length_);
     PathPrimitive primitive;
     primitive.primitive_type = PathPrimitiveType::kCubicSpiral;
     primitive.x_rel = end_point.x;
     primitive.y_rel = end_point.y;
     primitive.delta_yaw = end_point.yaw;
+    primitive.start_curvature = start_point.curvature;
+    primitive.end_curvature = end_point.curvature;
     primitive.length = end_point.distance_along_path;
     primitive.primitive_type = PathPrimitiveType::kCubicSpiral;
     primitive.squared_curvature_integral =
-        EvaluateCubicSpiralSegmentSquaredCurvatureIntegral(start_point, length_,
-                                                           delta_yaw_, 0.);
+        EvaluateCubicSpiralSegmentSquaredCurvatureIntegral(
+            start_point, length_, delta_yaw_, end_curvature_);
     primitive.evaluator_ptr = this;
 
     return primitive;
@@ -143,13 +153,18 @@ class CubicSpiralPrimitiveEvaluator : public PathPrimitiveEvaluationBase {
  private:
   double length_;
   double delta_yaw_;
+  double start_curvature_;
+  double end_curvature_;
 };
 
 PathPrimitiveWithEvaluation GenerateCubicSpiralPrimitive(double length,
-                                                         double delta_yaw) {
+                                                         double delta_yaw,
+                                                         double start_curvature,
+                                                         double end_curvature) {
   return PathPrimitiveWithEvaluation(
       std::unique_ptr<PathPrimitiveEvaluationBase>(
-          new CubicSpiralPrimitiveEvaluator(length, delta_yaw)));
+          new CubicSpiralPrimitiveEvaluator(length, delta_yaw, start_curvature,
+                                            end_curvature)));
 }
 
 PathPrimitiveWithEvaluation::PathPrimitiveWithEvaluation(

@@ -29,7 +29,8 @@ struct PrimitivePlanningParams {
   int horizon;
   double primitive_length;
   double primitive_min_turn_radius;
-  int num_primitive_angle_samples;
+  int num_primitive_curvature_samples;
+  double max_curvature_change_per_meter;
   double travel_cost_weight;
   double path_divergence_weight;
   double path_end_divergence_weight;
@@ -41,6 +42,7 @@ struct PrimitivePlanningParams {
   // Visited grid parameters (sparser means more agressive pruning)
   double visited_grid_spatial_resolution;
   int num_visited_grid_angle_bins;
+  double visited_grid_curvature_resolution;
 
   // Whether to output introspection information
   bool node_introspection;
@@ -57,7 +59,7 @@ struct PrimitivePlanningParams {
 
 std::vector<PathPrimitiveWithEvaluation> GeneratePrimitiveSet(
     double primitive_length, double primitive_min_turn_radius,
-    int primitive_angle_samples);
+    int primitive_curvature_samples, double max_curvature_change_per_meter);
 
 Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
                        const PrimitivePlanningParams& params,

@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -79,18 +79,22 @@ struct IntrospectionInfo<false> {
 class PathPrimitiveSearchNode {
  public:
   PathPrimitiveSearchNode(double x_in, double y_in, double yaw_in,
-                          double distance_traveled_in, int tree_depth_in,
+                          double curvature_in, double distance_traveled_in,
+                          int tree_depth_in,
                           PathPrimitive previous_primitive_in,
                           double cost_from_start_in, double cost_to_goal_in,
                           int parent_index_in);
 
   inline Eigen::Vector2d Position() const { return {x, y}; }
 
-  inline PathPoint State() const { return {distance_traveled, x, y, yaw, 0.}; }
+  inline PathPoint State() const {
+    return {distance_traveled, x, y, yaw, curvature};
+  }
 
   double x;
   double y;
   double yaw;
+  double curvature;
   double distance_traveled;
   int tree_depth;
   PathPrimitive previous_primitive;

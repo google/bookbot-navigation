@@ -51,7 +51,7 @@ dead_zone_velocity: 0.1
 dead_zone_deceleration: -0.5
 
 # Timeouts
-desired_path_timeout: 200
+desired_path_timeout: 2.0
 odometry_timeout: 0.2
 perception_timeout: 0.5
 

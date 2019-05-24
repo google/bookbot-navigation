@@ -20,11 +20,13 @@ reinitialization_distance: 1.0
 robot_radius: 0.3
 obstacle_check_front_offset: 0.3
 horizon: 50
+horizon: 20
 primitive_length: 0.5
-primitive_min_turn_radius: 0.3
-num_primitive_angle_samples: 10
+primitive_min_turn_radius: 0.5
+num_primitive_curvature_samples: 7
+max_curvature_change_per_meter: 1.5
 # Cost Weights and constriants
-travel_cost_weight: 100
+travel_cost_weight: 500
 path_divergence_weight: 10
 path_end_divergence_weight: 100
 path_end_alignment_weight: 100
@@ -34,6 +36,7 @@ curvature_integral_weight: 1000
 # Visited grid
 visited_grid_spatial_resolution: 0.2
 num_visited_grid_angle_bins: 64
+visited_grid_curvature_resolution: 0.3
 
 # Timeouts
 clicked_path_timeout: 0.5
