@@ -74,8 +74,8 @@ SignedDistanceField GenerateSignedDistanceField(
 
 SignedDistanceField GenerateSignedDistanceField(
     const nav_msgs::OccupancyGrid& occupancy_grid_msg,
-    int signed_distance_field_resolution_scaling_factor,
-    int obstacle_threshold);
+    int signed_distance_field_resolution_scaling_factor, int obstacle_threshold,
+    bool treat_unknown_as_obstacle = true);
 //---------------------------------------------------
 
 //---------------------------------------------------

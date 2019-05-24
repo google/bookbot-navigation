@@ -210,10 +210,10 @@ SignedDistanceField GenerateSignedDistanceField(
 
 SignedDistanceField GenerateSignedDistanceField(
     const nav_msgs::OccupancyGrid& occupancy_grid_msg,
-    int signed_distance_field_resolution_scaling_factor,
-    int obstacle_threshold) {
+    int signed_distance_field_resolution_scaling_factor, int obstacle_threshold,
+    bool treat_unknown_as_empty) {
   assert(tf::getYaw(occupancy_grid_msg.info.origin.orientation) == 0 &&
-         "Occupancy grid must be aligned with reference frame to creat signed "
+         "Occupancy grid must be aligned with reference frame to create signed "
          "distance field");
   auto origin = Eigen::Vector2d(occupancy_grid_msg.info.origin.position.x,
                                 occupancy_grid_msg.info.origin.position.y);
@@ -223,7 +223,13 @@ SignedDistanceField GenerateSignedDistanceField(
   auto msg_data_iter = occupancy_grid_msg.data.begin();
   for (int row = 0; row < occupancy_grid_msg.info.height; ++row) {
     for (int column = 0; column < occupancy_grid_msg.info.width; ++column) {
-      opencv_grid.at<uint8_t>(column, row) = *msg_data_iter++;
+      auto cell_value = *msg_data_iter++;
+      if (treat_unknown_as_empty) {
+        // Map unknown cells (-1) to empty, otherwise they wrap around as
+        // uint8_t values and become obstacles
+        cell_value = cell_value < 0 ? 0 : cell_value;
+      }
+      opencv_grid.at<uint8_t>(column, row) = cell_value;
     }
   }
   return GenerateSignedDistanceField(
