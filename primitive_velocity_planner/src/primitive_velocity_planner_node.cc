@@ -32,7 +32,8 @@
 #include <iomanip>
 #include <mutex>
 
-constexpr char kPathTopic[] = "/desired_path";
+constexpr char kActiveCommandTopic[] = "/desired_path";
+constexpr char kPathTopic[] = "/planned_path";
 constexpr char kOverrideTopic[] = "/obstacle_override";
 constexpr char kPerceptionTopic[] = "/occupancy_grid";
 constexpr char kOdomFrame[] = "/odom";
@@ -86,7 +87,8 @@ int main(int argc, char** argv) {
           &params.dead_zone_distance, "dead_zone_velocity",
           &params.dead_zone_velocity, "dead_zone_deceleration",
           &params.dead_zone_deceleration, "require_perception",
-          &params.require_perception, "desired_path_timeout",
+          &params.require_perception, "active_command_timeout",
+          &params.active_command_timeout, "desired_path_timeout",
           &params.desired_path_timeout, "odometry_timeout",
           &params.odometry_timeout, "perception_timeout",
           &params.perception_timeout, "obstacle_override_timeout",
@@ -130,6 +132,27 @@ int main(int argc, char** argv) {
   ros::Subscriber override_subscriber = node_handle.subscribe<std_msgs::Empty>(
       kOverrideTopic, 1, override_callback);
 
+  std::mutex active_command_mutex;
+  ros::Time last_active_command_timestamp = ros::Time(0);
+  boost::function<void(
+      const ros::MessageEvent<planning_msgs::Path>& message_event)>
+      active_command_callback =
+          [&active_command_mutex, &last_active_command_timestamp](
+              const ros::MessageEvent<planning_msgs::Path>& message_event)
+      -> void {
+    std::lock_guard<std::mutex> lock(active_command_mutex);
+    // We want to fail the timeout check if the last sent waypoint command is
+    // either stale or empty
+    if (message_event.getConstMessage()->points.empty()) {
+      last_active_command_timestamp = ros::Time(0);
+    } else {
+      last_active_command_timestamp = message_event.getReceiptTime();
+    }
+  };
+  ros::Subscriber active_command_subscriber =
+      node_handle.subscribe<planning_msgs::Path>(kActiveCommandTopic, 1,
+                                                 active_command_callback);
+
   ros::Publisher trajectory_publisher =
       node_handle.advertise<planning_msgs::Trajectory>(kTrajectoryTopic, 1);
 
@@ -146,6 +169,19 @@ int main(int argc, char** argv) {
     frame_time = ros::Time::now();  // Should be perception time
     loop_rate.reset();  // Publish next trajectory 1 cycle time from now
 
+    bool has_active_command = false;
+    {
+      std::lock_guard<std::mutex> lock(active_command_mutex);
+      has_active_command =
+          ros::Duration(ros::Time::now() - last_active_command_timestamp)
+              .toSec() < params.active_command_timeout;
+    }
+    if (!has_active_command) {
+      ROS_DEBUG("No active command");
+      loop_rate.sleep();
+      continue;
+    }
+
     bool valid_path;
     bookbot::Path local_path_copy;
     {
@@ -156,6 +192,7 @@ int main(int argc, char** argv) {
       local_path_copy = last_recieved_path;
     }
     if (!valid_path) {
+      ROS_DEBUG("No valid path");
       loop_rate.sleep();
       continue;
     }
