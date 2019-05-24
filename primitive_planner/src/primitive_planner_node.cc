@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
   // Load required parameters
   if (!bookbot::ReadParameters(
           node_handle, "robot_radius", &params.robot_radius,
+          "obstacle_check_front_offset", &params.obstacle_check_front_offset,
           "primitive_min_turn_radius", &params.primitive_min_turn_radius,
           "num_primitive_angle_samples", &params.num_primitive_angle_samples,
           "horizon", &params.horizon, "travel_cost_weight",

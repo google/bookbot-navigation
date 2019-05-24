@@ -1,11 +1,11 @@
 # Copyright 2019 Google LLC
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#  
+#
 #    https://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,8 @@ cycle_time: 0.5
 reinitialization_distance: 1.0
 
 # Parameters for the primitive planner
-robot_radius: 0.4
+robot_radius: 0.3
+obstacle_check_front_offset: 0.3
 horizon: 50
 primitive_length: 0.5
 primitive_min_turn_radius: 0.3

@@ -166,7 +166,7 @@ Trajectory PerformVelocityProfileSearch(
 
     // Check for goal
     double current_min_time_to_end = min_time_to_end(current_node);
-    if ((current_min_time_to_end < 2 * time_resolution &&
+    if ((current_min_time_to_end < 0.5 * time_resolution &&
          current_node.velocity_index == zero_velocity_index) ||
         current_node.time_index >= params.time_bins) {
       // At goal or horizon -> return best velocity_profile

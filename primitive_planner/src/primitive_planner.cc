@@ -170,18 +170,38 @@ Path PlanPrimitivePath(const Path& clicked_path, const PathPoint& start_point,
       }
       neighbor_node.cost_to_goal = cost_to_goal(neighbor_node);
 
+      // Obstacle constraints
+      // Check two points to get a two circle coverage of the robot shape.
+      //   __________________
+      //  |                  |
+      //  |   _|_ ____ _|_   |
+      //  |    | offset |    |
+      //  |__________________|
+      //       ^        ^
+      //   base_link   base_link + offset
+      //
+      //
       double obstacle_cost = 0;
       double dist_to_obstacles = 0;
       const Eigen::Vector2d neighbor_position = neighbor_node.Position();
+      const Eigen::Vector2d neighbor_front_position =
+          neighbor_position +
+          Eigen::Rotation2D<double>(neighbor_node.yaw) *
+              Eigen::Vector2d(params.obstacle_check_front_offset, 0);
       if (params.require_perception) {
         dist_to_obstacles =
             distance_field.Evaluate(neighbor_position) - params.robot_radius;
         if (dist_to_obstacles <= 0) {
           continue;
         }
-        obstacle_cost = dist_to_obstacles > 0 ? kMaxDistance - dist_to_obstacles
-                                              : 100 * kMaxDistance;
+        const double front_distance_to_obstacles =
+            distance_field.Evaluate(neighbor_front_position);
+        if (front_distance_to_obstacles <= params.robot_radius) {
+          continue;
+        }
+        obstacle_cost = kMaxDistance - dist_to_obstacles;
       }
+
       double path_divergence = clicked_path_field.Evaluate(neighbor_position);
       if (path_divergence >
           params.max_path_divergence * params.max_path_divergence) {
