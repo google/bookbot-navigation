@@ -15,6 +15,7 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
 #include <planning_msgs/Path.h>
+#include <planning_msgs/Trajectory.h>
 #include <primitive_planner/primitive_planner.h>
 #include <primitive_planner/primitive_planner_introspection.h>
 #include <ros/ros.h>
@@ -28,6 +29,7 @@
 #include <trajectory_math/curve_algorithms.h>
 #include <trajectory_math/path.h>
 #include <trajectory_math/path_algorithms.h>
+#include <trajectory_math/trajectory_algorithms.h>
 
 #include <mutex>
 
@@ -37,7 +39,7 @@ constexpr char kOdomFrame[] = "/odom";
 constexpr char kOdomTopic[] = "/odom";
 constexpr char kPerceptionTopic[] = "/occupancy_grid";
 constexpr char kPlannedPathTopic[] = "/planned_path";
-constexpr char kWebRTCIntrospectionTopic[] = "/webrtc/introspection_visuals";
+constexpr char kTrajectoryTopic[] = "/trajectory";
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "primitive_planner");
@@ -77,8 +79,11 @@ int main(int argc, char** argv) {
           &params.require_perception, "clicked_path_timeout",
           &params.clicked_path_timeout, "odometry_timeout",
           &params.odometry_timeout, "perception_timeout",
-          &params.perception_timeout, "cycle_time", &params.cycle_time,
-          "reinitialization_distance", &params.reinitialization_distance)) {
+          &params.perception_timeout, "trajectory_timeout",
+          &params.trajectory_timeout, "cycle_time", &params.cycle_time,
+          "reinitialization_distance", &params.reinitialization_distance,
+          "reinitialization_velocity_threshold",
+          &params.reinitialization_velocity_threshold)) {
     return EXIT_FAILURE;
   }
 
@@ -111,12 +116,17 @@ int main(int argc, char** argv) {
       kPerceptionTopic, node_handle, 3);
   bookbot::TopicListener<nav_msgs::Odometry> odometry_listener(
       kOdomTopic, node_handle, 500);
+  bookbot::TopicListener<planning_msgs::Trajectory> trajectory_listener(
+      kTrajectoryTopic, node_handle, 3);
 
   ros::AsyncSpinner spinner(3);
   spinner.start();
   ros::Rate loop_rate(1 / params.cycle_time);
   ros::Time frame_time = ros::Time::now();  // should be perception time
   while (ros::ok()) {
+    // Time at which the new path will be published
+    ros::Time planning_time = frame_time + ros::Duration(params.cycle_time);
+
     bool valid_clicked_path = false;
     bookbot::Path clicked_path;
     {
@@ -139,7 +149,7 @@ int main(int argc, char** argv) {
     bookbot::PublishIntrospection("/clicked_path", "/odom", clicked_path);
 
     nav_msgs::Odometry odom;
-    if (!odometry_listener.GetClosestBefore(frame_time, &odom) ||
+    if (!odometry_listener.GetClosestBefore(planning_time, &odom) ||
         ros::Duration(frame_time - odom.header.stamp).toSec() >
             params.odometry_timeout) {
       ROS_ERROR("Invalid or stale odometry");
@@ -150,7 +160,7 @@ int main(int argc, char** argv) {
 
     nav_msgs::OccupancyGrid grid;
     if (params.require_perception &&
-        (!grid_listener.GetClosestBefore(frame_time, &grid) ||
+        (!grid_listener.GetClosestBefore(planning_time, &grid) ||
          ros::Duration(frame_time - grid.header.stamp).toSec() >
              params.perception_timeout)) {
       ROS_ERROR("Invalid or stale perception");
@@ -180,9 +190,33 @@ int main(int argc, char** argv) {
     initial_state.y = odom.pose.pose.position.y;
     initial_state.yaw = tf::getYaw(odom.pose.pose.orientation);
     initial_state.curvature = 0.;
+    const double current_velocity =
+        Eigen::Vector2d(odom.twist.twist.linear.x, odom.twist.twist.linear.y)
+            .norm();
+
+    // Check to see if the last recieved trajectory was stitched
+    bool last_trajectory_is_stitched = false;
+    planning_msgs::Trajectory last_trajectory_msg;
+    if (trajectory_listener.GetClosestBefore(planning_time,
+                                             &last_trajectory_msg) &&
+        ros::Duration(frame_time - last_trajectory_msg.header.stamp).toSec() <
+            params.trajectory_timeout &&
+        !last_trajectory_msg.points.empty()) {
+      last_trajectory_is_stitched = (last_trajectory_msg.trajectory_status ==
+                                     planning_msgs::Trajectory::STITCHED);
+    }
+
     double initial_distance_along_path = 0;  // Cache for prefix update
     bookbot::Path prefix;
-    if (!last_planned_path.empty()) {
+    if (!last_planned_path.empty() &&
+        (last_trajectory_is_stitched ||
+         current_velocity > params.reinitialization_velocity_threshold)) {
+      // We want to try to stitch to the previous path because we have a
+      // previous path to stitch to and either:
+      // 1) the robot is in motion, in which case we don't want to abruptly
+      // change the path, or
+      // 2) the robot is stationary but the planned trajectory is not reiniting
+      // meaning that the robot is in the middle of executing a planned maneuver
       auto current_pt = Eigen::Vector2d{initial_state.x, initial_state.y};
       auto bracketing_points = FindClosestSegment(
           current_pt, last_planned_path.begin(), last_planned_path.end());
@@ -198,9 +232,6 @@ int main(int argc, char** argv) {
         prefix.push_back(*bracketing_points.first);
 
         // Start at next node point that is sufficiently far ahead
-        auto current_velocity = Eigen::Vector2d{odom.twist.twist.linear.x,
-                                                odom.twist.twist.linear.y}
-                                    .norm();
         auto current_node_point_iter = bracketing_points.second;
         while (current_node_point_iter->distance_along_path -
                        current_matched_point.distance_along_path <

@@ -15,6 +15,7 @@
 # General planner params
 cycle_time: 0.5
 reinitialization_distance: 1.0
+reinitialization_velocity_threshold: 0.5
 
 # Parameters for the primitive planner
 robot_radius: 0.3
@@ -42,3 +43,4 @@ visited_grid_curvature_resolution: 0.3
 clicked_path_timeout: 0.5
 odometry_timeout: 0.2
 perception_timeout: 0.5
+trajectory_timeout: 0.5

@@ -51,10 +51,12 @@ struct PrimitivePlanningParams {
   double clicked_path_timeout;
   double odometry_timeout;
   double perception_timeout;
+  double trajectory_timeout;
 
   // General planner parameters
   double cycle_time;
   double reinitialization_distance;
+  double reinitialization_velocity_threshold;
 };
 
 std::vector<PathPrimitiveWithEvaluation> GeneratePrimitiveSet(
