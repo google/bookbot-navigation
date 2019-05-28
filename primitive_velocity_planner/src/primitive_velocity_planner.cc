@@ -82,16 +82,16 @@ Trajectory GenerateDeadzoneStoppingTrajectory(
     const Trajectory1DPoint& longitudinal_planning_state,
     const VelocityPlannerParams& params);
 
-Trajectory PlanVelocityProfile(const Path& desired_path,
-                               const RobotPlanningState& robot_state,
-                               const VelocityPlannerParams& params,
-                               const Trajectory& previous_trajectory,
-                               const SignedDistanceField& distance_field) {
+TrajectoryResult PlanVelocityProfile(
+    const Path& desired_path, const RobotPlanningState& robot_state,
+    const VelocityPlannerParams& params, const Trajectory& previous_trajectory,
+    const SignedDistanceField& distance_field) {
   RobotPlanningState expected_robot_state_at_planning_time;
   double planning_time = robot_state.time + params.velocity_planner_cycle_time;
   double initial_acceleration = 0;
   Trajectory prefix;
   double prefix_end_distance_along_path = 0;
+  TrajectoryStatus result_status = TrajectoryStatus::STITCHED;
   if (previous_trajectory.empty() ||
       planning_time > previous_trajectory.back().time ||
       planning_time < previous_trajectory.front().time) {
@@ -100,6 +100,7 @@ Trajectory PlanVelocityProfile(const Path& desired_path,
         "Velocity planner reiniting due to no valid previous trajectory");
     expected_robot_state_at_planning_time =
         ExtrapolateRobotState(robot_state, params.velocity_planner_cycle_time);
+    TrajectoryStatus result_status = TrajectoryStatus::REINIT;
   } else {
     // Plan from point after current_time + cycle_time on previous trajectory
     auto matched_trajectory_point_iter =
@@ -114,6 +115,7 @@ Trajectory PlanVelocityProfile(const Path& desired_path,
           "Velocity planner reiniting due to no valid previous trajectory");
       expected_robot_state_at_planning_time = ExtrapolateRobotState(
           robot_state, params.velocity_planner_cycle_time);
+      TrajectoryStatus result_status = TrajectoryStatus::REINIT;
     } else {
       expected_robot_state_at_planning_time.time =
           matched_trajectory_point_iter->time;
@@ -150,7 +152,7 @@ Trajectory PlanVelocityProfile(const Path& desired_path,
       PerformVelocityProfileSearch(desired_path, longitudinal_planning_state,
                                    params, previous_trajectory, distance_field);
   if (best_trajectory.empty()) {
-    return best_trajectory;  // Return empty trajectory to indicate failure
+    return {best_trajectory, TrajectoryStatus::FAILED};
   }
 
   // Check if the trajectory falls within the deadzone
@@ -161,6 +163,7 @@ Trajectory PlanVelocityProfile(const Path& desired_path,
     // Trajectory falls within deadzone - just stop at a reasonable rate
     best_trajectory = GenerateDeadzoneStoppingTrajectory(
         desired_path, longitudinal_planning_state, params);
+    result_status = TrajectoryStatus::DEADZONE;
   }
 
   // Update prefix distances in case underlying path has been changed
@@ -182,7 +185,7 @@ Trajectory PlanVelocityProfile(const Path& desired_path,
   PublishIntrospection("/introspection/best_trajectory",
                        params.odometry_frame_id, best_trajectory);
 
-  return best_trajectory;
+  return {best_trajectory, result_status};
 }
 
 RobotPlanningState ExtrapolateRobotState(

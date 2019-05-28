@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle node_handle("velocity_planner");
   bookbot::Introspector introspector(node_handle);
 
-  bookbot::Trajectory last_trajectory;
+  bookbot::TrajectoryResult last_trajectory;
   bookbot::VelocityPlannerParams params;
 
   // Load required parameters
@@ -252,23 +252,41 @@ int main(int argc, char** argv) {
     }
 
     // Compute best trajectory
-    bookbot::Trajectory best_trajectory = bookbot::PlanVelocityProfile(
-        local_path_copy, robot_state, updated_params, last_trajectory,
-        distance_field);
+    bookbot::TrajectoryResult trajectory_result = bookbot::PlanVelocityProfile(
+        local_path_copy, robot_state, updated_params,
+        last_trajectory.planned_trajectory, distance_field);
 
-    last_trajectory = best_trajectory;
+    last_trajectory = trajectory_result;
 
     // Publish trajectory
     planning_msgs::Trajectory trajectory_msg;
     trajectory_msg.header.stamp = frame_time;
     trajectory_msg.header.frame_id = kOdomFrame;
-    for (const bookbot::TrajectoryPoint& point : best_trajectory) {
+    switch (trajectory_result.status) {
+      case bookbot::TrajectoryStatus::DEADZONE:
+        trajectory_msg.trajectory_status =
+            planning_msgs::Trajectory::IN_DEADZONE;
+        break;
+      case bookbot::TrajectoryStatus::STITCHED:
+        trajectory_msg.trajectory_status = planning_msgs::Trajectory::STITCHED;
+        break;
+      case bookbot::TrajectoryStatus::REINIT:
+        trajectory_msg.trajectory_status = planning_msgs::Trajectory::REINIT;
+        break;
+      case bookbot::TrajectoryStatus::FAILED:
+      default:
+        trajectory_msg.trajectory_status = planning_msgs::Trajectory::FAILED;
+        break;
+    }
+    for (const bookbot::TrajectoryPoint& point :
+         trajectory_result.planned_trajectory) {
       planning_msgs::TrajectoryPoint point_msg;
       point_msg.time = point.time;
       point_msg.distance_along_path = point.distance_along_path;
       point_msg.x = point.x;
       point_msg.y = point.y;
       point_msg.yaw = point.yaw;
+      point_msg.curvature = point.curvature;
       point_msg.velocity = point.velocity;
       trajectory_msg.points.push_back(point_msg);
     }

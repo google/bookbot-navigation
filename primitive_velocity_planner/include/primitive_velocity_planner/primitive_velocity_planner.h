@@ -23,6 +23,24 @@
 namespace bookbot {
 
 /**
+ * @brief Status enum that indicates how the final trajectory was produced.
+ *  */
+enum class TrajectoryStatus {
+  DEADZONE,  ///< A stopping trajectory that did not escape the deadzone
+  STITCHED,  ///< Continues from a previous trajectory
+  REINIT,    ///< Reinitialized from the robots current longitudinal position
+  FAILED     ///< No valid trajectory was produced
+};
+
+/**
+ * @brief Return type that includes a planned trajectory and its status
+ */
+struct TrajectoryResult {
+  Trajectory planned_trajectory;
+  TrajectoryStatus status;
+};
+
+/**
  * @brief Plans a velocity profile along the desired path to generate a
  * trajectory.
  *
@@ -34,14 +52,14 @@ namespace bookbot {
  *                                  Note:
  *                                  This trajectory can follow a different path
  * @param [in] distance_fiedl       Obstacle signed distance field
- * @return Trajectory   The optimized velocity profile evaluated along the
- *                      desired path
+ * @return TrajectoryResult   The optimized velocity profile evaluated along the
+ *                            desired path
  */
-Trajectory PlanVelocityProfile(const Path& desired_path,
-                               const RobotPlanningState& robot_state,
-                               const VelocityPlannerParams& params,
-                               const Trajectory& previous_trajectory,
-                               const SignedDistanceField& distance_field);
+TrajectoryResult PlanVelocityProfile(const Path& desired_path,
+                                     const RobotPlanningState& robot_state,
+                                     const VelocityPlannerParams& params,
+                                     const Trajectory& previous_trajectory,
+                                     const SignedDistanceField& distance_field);
 
 }  // namespace bookbot
 
